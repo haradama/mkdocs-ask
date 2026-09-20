@@ -1,0 +1,16 @@
+{
+  "name": "mkdocs-ask-frontend",
+  "private": true,
+  "type": "module",
+  "description": "Node tooling for this repository: the test harness for the browser runtime in src/mkdocs_ask/assets (plain ES modules, no build step; jsdom is used only for the theme search-field integration) and markdownlint for the Markdown.",
+  "scripts": {
+    "test": "node --test \"tests/js/**/*.test.mjs\"",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=\"src/mkdocs_ask/assets/search-core.js\" --test-coverage-include=\"src/mkdocs_ask/assets/searchbox.js\" --test-coverage-include=\"src/mkdocs_ask/assets/urls.js\" --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 \"tests/js/**/*.test.mjs\"",
+    "lint:md": "markdownlint-cli2",
+    "lint:md:fix": "markdownlint-cli2 --fix"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.0",
+    "markdownlint-cli2": "^0.23.3"
+  }
+}

@@ -1,0 +1,139 @@
+site_name: Kagura Docs
+site_description: Kagura, a self-hosted event ingestion and query engine
+site_url: https://example.com/kagura/
+docs_dir: docs
+
+# Present in docs/ on purpose but deliberately absent from the nav.
+not_in_nav: |
+  api/generated/*
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - toc.follow
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle: { icon: material/brightness-7, name: Switch to dark mode }
+    - scheme: slate
+      primary: indigo
+      toggle: { icon: material/brightness-4, name: Switch to light mode }
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed: { alternate_style: true }
+  # Unicode-preserving anchors. With the default slugify, non-ASCII headings collapse
+  # to #_1, #_2 and citations become unreadable.
+  - toc:
+      permalink: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify {kwds: {case: lower}}
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Install: getting-started/install.md
+      - Quickstart: getting-started/quickstart.md
+      - Concepts: getting-started/concepts.md
+  - Guides:
+      - Authentication: guide/auth.md
+      - Configuration: guide/config.md
+      - Ingesting events: guide/ingestion.md
+      - Querying: guide/query.md
+      - Schemas: guide/schema.md
+      - Retention and compaction: guide/retention.md
+  - Operations:
+      - Deployment: operations/deployment.md
+      - Observability: operations/observability.md
+      - Backup and restore: operations/backup.md
+      - Performance tuning: operations/performance.md
+      - Security: operations/security.md
+  - Reference:
+      - CLI: reference/cli.md
+      - Configuration keys: reference/configuration.md
+      - Error codes: reference/errors.md
+      - REST API: reference/rest-api.md
+      - Environment variables: reference/environment.md
+  - Support:
+      - Troubleshooting: troubleshooting.md
+      - FAQ: faq.md
+      - Migrating from v1: migration.md
+      - Changelog: changelog.md
+
+plugins:
+  # ask coexists with the built-in search plugin; it does not replace it.
+  - search
+  - ask:
+      language: en
+      output_dir: assets/ask
+
+      # Pages kept out of the index, matched with fnmatch against src_uri.
+      exclude:
+        - changelog.md        # release notes mostly add noise to retrieval
+        - "api/generated/*"   # machine-generated stubs with no prose
+
+      embedding:
+        model: multilingual-e5-small   # the browser loads these exact ONNX weights
+        backend: auto                  # fastembed, then sentence-transformers, then keyword-only
+        dtype: int8                    # 384 bytes per chunk instead of 1536
+        browser_dtype: q8
+        cache_dir: .cache/mkdocs-ask   # later builds only embed what changed
+        include_breadcrumbs: true      # prepend "Authentication > API keys > Rotating a key"
+
+      chunking:
+        max_chars: 800
+        overlap: 80
+        include_code: true             # required: flags and config keys live in code blocks
+
+      search:
+        hybrid: true
+        keyword_weight: 0.4            # carries exact strings such as ERR_QUOTA_EXCEEDED
+        semantic_weight: 0.6           # carries paraphrases and cross-language questions
+        top_k: 5
+        candidates: 50
+
+      ai_answer:
+        enabled: true                  # shows the "Answer with AI" button in the panel
+        model: Qwen2.5-0.5B-Instruct-q4f16_1-MLC
+        backend: auto                  # webgpu, else wasm
+        context_chunks: 5
+
+      ui:
+        # The panel the search field opens. There is no launcher button of the plugin's own.
+        title: Ask the Kagura docs
+        placeholder: e.g. how do I stop duplicate events?
+        preload: focus      # focus | idle | query
+        strings:
+          found: "These sections look relevant:"
+          none: "Nothing matched. Try naming the error code or the command."
+          searchboxHeading: "Semantic matches"
+          searchboxAsk: "Ask the docs"
+
+      # How ask extends the theme's search field, which is its only entry point.
+      # The built-in search plugin keeps its input and its own results; ask inserts its
+      # semantic hits just above them, and offers a button that opens the full panel.
+      search_box:
+        mode: augment       # augment: search as you type. handoff: just a button
+        selector: auto      # auto-detects Material, mkdocs and readthedocs
+        min_chars: 3
+        max_results: 3
+
+      # For an internal site, this one line makes the published site self-contained: the
+      # library, the ONNX Runtime binaries and the model are copied into site/ at build time,
+      # so a reader's browser never contacts jsDelivr or huggingface.co and neither their IP
+      # address nor a Referer naming this site leaves the network. Costs about 160 MB in site/.
+      # runtime:
+      #   vendor: true
+      #
+      # Note: this covers the plugin only. Material also loads Google Fonts on every page
+      # view; `theme.font: false` stops that.

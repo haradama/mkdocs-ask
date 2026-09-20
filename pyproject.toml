@@ -1,0 +1,95 @@
+[project]
+name = "mkdocs-ask"
+version = "0.1.0"
+description = "Conversational, fully client-side search for MkDocs: build-time chunking and embeddings, in-browser hybrid (BM25 + vector) search via WebAssembly/WebGPU, optional on-device SLM answers."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "haradama", email = "masafumiharada@keio.jp" }
+]
+requires-python = ">=3.10"
+keywords = ["mkdocs", "mkdocs-plugin", "search", "rag", "embeddings", "webassembly", "webgpu"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: MkDocs",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Documentation",
+    "Topic :: Text Processing :: Indexing",
+    "Typing :: Typed",
+]
+dependencies = [
+    "mkdocs>=1.6",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+# Build-time embedding backends (pick one). `fastembed` is recommended: ONNX Runtime only, no PyTorch.
+fastembed = [
+    "fastembed>=0.4",
+]
+sentence-transformers = [
+    "sentence-transformers>=3.0",
+]
+
+[project.entry-points."mkdocs.plugins"]
+ask = "mkdocs_ask.plugin:AskPlugin"
+
+[project.urls]
+Homepage = "https://github.com/haradama/mkdocs-ask"
+Documentation = "https://github.com/haradama/mkdocs-ask#readme"
+Issues = "https://github.com/haradama/mkdocs-ask/issues"
+Changelog = "https://github.com/haradama/mkdocs-ask/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["uv_build>=0.11.16,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.10",
+    "pytest>=8.0",
+    "ruff>=0.5",
+    "mkdocs-material>=9.5",
+    "pytest-cov>=7.1.0",
+    "huggingface-hub>=0.24",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# RUF100 flags `# noqa` comments that suppress nothing, so they cannot go stale silently.
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF100"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+# Coverage is gated at 100% for the Python package. Every branch here runs at build time, so
+# an untested one is a path that only ever executes on a user's machine. The browser runtime
+# has its own gate; see package.json. Run it with: uv run pytest --cov
+[tool.coverage.run]
+source = ["src/mkdocs_ask"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = true
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+# MkDocs' Config base class has an untyped __init_subclass__, which strict mode reports at
+# every subclass we declare. That is a gap in MkDocs' annotations, not in ours.
+disable_error_code = ["no-untyped-call"]

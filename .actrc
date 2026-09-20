@@ -1,0 +1,18 @@
+# Defaults for running the workflows locally with act (https://github.com/nektos/act).
+#
+#   act push                                       the CI workflow, every job
+#   act push -j lint                               one job
+#   act push -j test-python --matrix python-version:3.10
+#
+# `act push` is scoped to ci.yml. The release workflow only makes sense for a tag, so run it
+# explicitly with a tag event (it must not, and will not, publish from a local run):
+#
+#   echo '{"ref":"refs/tags/v0.1.0"}' > /tmp/tag.json
+#   act push -W .github/workflows/release.yml -j build --eventpath /tmp/tag.json \
+#       --artifact-server-path /tmp/act-artifacts
+#
+# The image is the standard act runner; --pull=false keeps repeated runs offline once it has
+# been fetched. Jobs that upload artifacts also need --artifact-server-path.
+-W .github/workflows/ci.yml
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+--pull=false

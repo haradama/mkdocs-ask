@@ -1,0 +1,45 @@
+// markdownlint configuration for this repository.
+//
+// The example site is written for MkDocs with Material, whose syntax extensions look odd to a
+// CommonMark parser: content tabs (=== "Docker") and admonitions (!!! note) indent their body
+// by four spaces, which a linter reads as an indented code block. The rules below accommodate
+// that without switching off anything that would let a real mistake through.
+{
+  "globs": ["**/*.md"],
+  "ignores": [
+    "node_modules",
+    ".venv",
+    "example/site",
+    "example/.cache",
+    "dist"
+  ],
+  "config": {
+    "default": true,
+
+    // Prose is wrapped at 100 to match the Python line length. Tables and code blocks are
+    // exempt: wrapping a table row changes the table, and wrapping a command breaks it.
+    "MD013": {
+      "line_length": 100,
+      "tables": false,
+      "code_blocks": false,
+      "headings": true
+    },
+
+    // Every code block in this repository is fenced. Saying so explicitly stops the rule from
+    // inferring "indented" from a Material content tab and then flagging every real fence.
+    "MD046": { "style": "fenced" },
+
+    // Fenced blocks are labelled with a language wherever one applies; `text` covers diagrams.
+    "MD040": { "allowed_languages": [], "language_only": false },
+
+    // Duplicate headings are fine across different sections, e.g. an "Ingest" row appearing
+    // under both the configuration and the error-code reference.
+    "MD024": { "siblings_only": true },
+
+    // One space inside each pipe. The default infers a style per table, which flip-flops
+    // between "compact" and "aligned" on tables whose cells happen to line up, so --fix does
+    // not converge. Naming the style keeps it deterministic, and "aligned" was rejected
+    // because padding every cell to the widest one makes a one-word edit reflow the table.
+    "MD060": { "style": "compact" }
+  }
+}

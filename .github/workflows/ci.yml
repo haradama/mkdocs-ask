@@ -1,0 +1,180 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Fail if uv.lock does not match pyproject.toml, rather than silently resolving something
+  # different from what a developer tested against.
+  UV_LOCKED: "1"
+  FORCE_COLOR: "1"
+
+jobs:
+  lint:
+    name: Lint, types and Markdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Python dependencies
+        run: uv sync
+
+      - run: uv run ruff check src tests
+      - run: uv run ruff format --check src tests
+      - run: uv run mypy src
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint:md
+
+  test-python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          python-version: ${{ matrix.python-version }}
+
+      # No embedding extra on purpose: the suite stubs both backends, so this also proves the
+      # plugin imports and degrades correctly on a bare `pip install mkdocs-ask`.
+      - name: Install Python dependencies
+        run: uv sync
+
+      - name: Tests, gated at 100% coverage
+        run: uv run pytest --cov
+
+  test-js:
+    name: Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - name: Browser runtime, gated at 100% coverage
+        run: npm run test:coverage
+
+  build:
+    name: Build the wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - run: uv build
+
+      - name: The wheel must carry the browser runtime and the entry point
+        run: |
+          uv run --no-project --with . python - <<'PY'
+          import glob, zipfile
+          wheel = sorted(glob.glob("dist/*.whl"))[-1]
+          names = zipfile.ZipFile(wheel).namelist()
+          assets = sorted(n.split("/")[-1] for n in names if "/assets/" in n and not n.endswith("/"))
+          expected = [
+              "ask.css", "ask.js", "generator.js", "search-core.js",
+              "searchbox.js", "urls.js", "worker.js",
+          ]
+          assert assets == expected, f"assets in the wheel: {assets}"
+          entry = next(n for n in names if n.endswith("entry_points.txt"))
+          text = zipfile.ZipFile(wheel).read(entry).decode()
+          assert "ask = mkdocs_ask.plugin:AskPlugin" in text, text
+          print(f"{wheel}: {len(assets)} assets, entry point present")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  example:
+    name: Example site and retrieval quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The embedding model is about 130 MB. Cached by name, so only the first run downloads
+      # it; the embedding cache inside is keyed by content hash and is safe to reuse.
+      - name: Cache the embedding model
+        uses: actions/cache@v4
+        with:
+          path: example/.cache/mkdocs-ask
+          key: mkdocs-ask-model-multilingual-e5-small-v1
+
+      - name: Install with the recommended embedding backend
+        run: uv sync --extra fastembed
+
+      - name: Build the example site for real
+        working-directory: example
+        run: uv run mkdocs build --strict
+
+      - name: The built site must carry a usable index
+        working-directory: example
+        run: |
+          uv run python - <<'PY'
+          import json, pathlib
+          out = pathlib.Path("site/assets/ask")
+          manifest = json.loads((out / "manifest.json").read_text())
+          assert manifest["model"]["onnx_id"] == "Xenova/multilingual-e5-small"
+          assert manifest["chunks"]["count"] > 100, manifest["chunks"]
+          vectors = manifest["vectors"]
+          size = (out / vectors["file"]).stat().st_size
+          assert size == vectors["count"] * vectors["dim"], (size, vectors)
+          for name in ("ask.js", "worker.js", "search-core.js", "urls.js", "searchbox.js"):
+              assert (out / name).is_file(), name
+          print(f"{manifest['chunks']['count']} chunks, {vectors['dim']}-dim {vectors['dtype']} vectors")
+          PY
+
+      # Retrieval quality is a property of the whole pipeline, so it is checked the same way a
+      # developer would: against the golden query set, using the runtime's own code.
+      - name: Retrieval evaluation
+        working-directory: example
+        run: uv run python scripts/eval.py

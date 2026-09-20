@@ -1,0 +1,105 @@
+# Golden queries for the retrieval evaluation harness.
+#
+# `expect` is one URL prefix or a list of them, matched against the chunk URL. The prefixes name
+# a *section*, not just a page, because page-level scoring flatters every retriever: on a
+# 23-page site almost anything lands on the right page, and the interesting question is whether
+# the reader is dropped at the right heading.
+#
+# `known_miss: true` marks a query the current setup gets wrong. It is still scored and shown,
+# but it does not fail the run, so the report keeps an honest record of the limitations.
+#
+# The groups exist to show which retriever earns its keep where. Run scripts/eval.py to score.
+
+- group: exact strings, which keyword search carries
+  queries:
+    - q: ERR_QUOTA_EXCEEDED
+      expect: reference/errors/#ingest
+      why: one row in one table; every error section looks alike to an embedding model
+    - q: KGR-5070
+      expect: reference/errors/#storage-and-cluster
+      why: a numeric identifier carries no semantics at all
+    - q: --compaction-parallelism
+      expect:
+        - guide/retention/#compaction
+        - reference/cli/#kagura-compact
+      why: flags survive tokenisation intact, leading dashes and all
+    - q: storage.min_free_bytes
+      expect: reference/configuration/#storage
+      why: a dotted key, indexed whole and by segment, among ten near-identical tables
+    - q: EventBatchWriter.flush()
+      expect: guide/ingestion/#batch-writes
+      why: an identifier that appears in exactly one code block
+    - q: KAGURA_INGEST_DEDUP_WINDOW
+      expect: reference/environment/#commonly-used
+      why: an environment variable name nobody would paraphrase
+    - q: kagura_raft_leader_changes_total
+      expect:
+        - operations/observability/#metrics
+        - operations/observability/#alerts-worth-having
+      why: a metric name, in a page where every section is about metrics
+
+- group: paraphrases, which semantic search carries
+  queries:
+    - q: how do I stop the same event being stored twice
+      expect:
+        - guide/ingestion/#preventing-duplicates
+        - troubleshooting/#the-same-event-is-processed-more-than-once
+      why: the docs say "idempotency key", never "stored twice"
+    - q: we are running out of disk space
+      expect:
+        - guide/retention/#when-the-disk-fills-up
+        - troubleshooting/#running-out-of-disk-space
+      why: the section is titled "When the disk fills up"
+    - q: delete events older than a month without doing it by hand
+      expect: guide/retention/#time-based-retention
+      why: the docs call this retention and never say "delete ... by hand"
+    - q: stop one team reading another teams events
+      expect:
+        - operations/security/#keeping-tenants-apart
+        - getting-started/concepts/#tenants
+      why: the docs call this tenant isolation
+    - q: the server takes forever before it accepts connections
+      expect: troubleshooting/#the-server-will-not-start
+      why: the answer is "replaying the write-ahead log"
+    - q: our writes are too slow, what should I change
+      expect:
+        - operations/performance/#common-bottlenecks
+        - operations/performance/#durability-and-fsync
+        - operations/performance/#batch-sizing
+        - troubleshooting/#write-latency-spikes
+      why: no page contains that phrasing
+    - q: someone leaked a credential, what do I do now
+      expect: guide/auth/#rotating-a-key
+      why: the section is about issuing a replacement before revoking
+      known_miss: true
+      note: >
+        Lands on the right page but the wrong section: the top hits are about
+        diagnosing a rejected credential, not replacing one. Kept in the set on
+        purpose, because a golden set that always passes measures nothing.
+    - q: how many machines do I need to survive one failing
+      expect:
+        - operations/deployment/#high-availability
+        - faq/#can-i-run-a-single-node-in-production
+      why: the answer is a table of Raft node counts, and the FAQ answers it too
+
+- group: mixed, where both halves contribute
+  queries:
+    - q: why does ERR_DISK_FULL happen and how do I recover
+      expect:
+        - guide/retention/#when-the-disk-fills-up
+        - troubleshooting/#running-out-of-disk-space
+      why: an exact code plus an intent that points at the recovery steps
+    - q: query is slow and explain shows segments=42
+      expect:
+        - guide/query/#the-slow-query-log
+        - troubleshooting/#queries-are-slow
+        - operations/performance/#query-performance
+      why: prose plus a literal that appears in one code block
+    - q: is adding a field BACKWARD compatible
+      expect:
+        - guide/schema/#compatibility-modes
+        - guide/schema/#evolving-a-schema-safely
+      why: a literal enum value inside a conceptual question
+    - q: my paging cursor stopped working after a while
+      expect: guide/query/#paging
+      why: maps onto ERR_CURSOR_EXPIRED without naming it

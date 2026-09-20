@@ -1,0 +1,217 @@
+/* mkdocs-ask: scoped styles, every class prefixed with .mkask- */
+
+:root {
+  /* Follows Material's configured primary colour when present, so the block does not look
+     like a foreign object in the theme's own search dropdown. */
+  --mkask-accent: var(--md-primary-fg-color, #3f51b5);
+  --mkask-bg: #ffffff;
+  --mkask-fg: #1f2933;
+  --mkask-muted: #6b7280;
+  --mkask-border: #e5e7eb;
+  --mkask-user: #eef2ff;
+  --mkask-assistant: #f8fafc;
+  --mkask-radius: 12px;
+  --mkask-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mkask-bg: #1e2229;
+    --mkask-fg: #e5e7eb;
+    --mkask-muted: #9ca3af;
+    --mkask-border: #374151;
+    --mkask-user: #2b3357;
+    --mkask-assistant: #262b33;
+  }
+}
+/* Material for MkDocs dark scheme */
+[data-md-color-scheme="slate"] {
+  --mkask-bg: #1e2229;
+  --mkask-fg: #e5e7eb;
+  --mkask-muted: #9ca3af;
+  --mkask-border: #374151;
+  --mkask-user: #2b3357;
+  --mkask-assistant: #262b33;
+}
+[data-md-color-scheme="default"] {
+  --mkask-bg: #ffffff;
+  --mkask-fg: #1f2933;
+  --mkask-muted: #6b7280;
+  --mkask-border: #e5e7eb;
+  --mkask-user: #eef2ff;
+  --mkask-assistant: #f8fafc;
+}
+
+.mkask-dialog {
+  width: min(560px, 92vw);
+  max-height: min(80vh, 720px);
+  padding: 0;
+  border: 1px solid var(--mkask-border);
+  border-radius: var(--mkask-radius);
+  background: var(--mkask-bg);
+  color: var(--mkask-fg);
+  font: 0.92rem/1.5 var(--mkask-font);
+  display: none;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+.mkask-dialog[open] { display: flex; }
+.mkask-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+
+.mkask-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--mkask-border);
+}
+.mkask-header h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+.mkask-close {
+  border: 0;
+  background: transparent;
+  color: var(--mkask-muted);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.mkask-messages {
+  flex: 1 1 auto;
+  min-height: 160px;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.mkask-msg {
+  max-width: 92%;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--mkask-radius);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mkask-msg--user { align-self: flex-end; background: var(--mkask-user); }
+.mkask-msg--assistant { align-self: flex-start; background: var(--mkask-assistant); white-space: normal; }
+
+.mkask-intro { margin: 0 0 0.5rem; }
+.mkask-mode { color: var(--mkask-muted); font-size: 0.8em; }
+.mkask-results { margin: 0; padding-left: 1.25rem; }
+.mkask-results li { margin-bottom: 0.6rem; }
+.mkask-result { color: var(--mkask-accent); text-decoration: none; display: block; }
+.mkask-result:hover strong { text-decoration: underline; }
+.mkask-crumbs { display: block; color: var(--mkask-muted); font-size: 0.8em; }
+.mkask-snippet { margin: 0.15rem 0 0; color: var(--mkask-muted); font-size: 0.88em; }
+
+.mkask-ai {
+  margin-top: 0.6rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--mkask-accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mkask-accent);
+  font: 600 0.85rem var(--mkask-font);
+  cursor: pointer;
+}
+.mkask-ai:disabled { opacity: 0.6; cursor: progress; }
+.mkask-answer { white-space: pre-wrap; }
+.mkask-sources { margin: 0.6rem 0 0; font-size: 0.85em; color: var(--mkask-muted); }
+.mkask-sources a, .mkask-cite { color: var(--mkask-accent); text-decoration: none; }
+
+.mkask-status {
+  min-height: 1.2rem;
+  padding: 0 1rem 0.35rem;
+  color: var(--mkask-muted);
+  font-size: 0.8em;
+  position: relative;
+}
+.mkask-status--busy::after {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(to right, var(--mkask-accent) calc(var(--mkask-progress) * 100%), var(--mkask-border) 0);
+}
+
+.mkask-form {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--mkask-border);
+}
+.mkask-input {
+  flex: 1 1 auto;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--mkask-border);
+  border-radius: 999px;
+  background: var(--mkask-bg);
+  color: var(--mkask-fg);
+  font: inherit;
+}
+.mkask-input:focus { outline: 2px solid var(--mkask-accent); outline-offset: 1px; }
+.mkask-send {
+  border: 0;
+  border-radius: 999px;
+  padding: 0 0.9rem;
+  background: var(--mkask-accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .mkask-dialog { width: 100vw; max-height: 100vh; border-radius: 0; }
+}
+
+/* Block inserted next to the theme's own search results (search_box integration). */
+.mkask-sb {
+  margin: 0.5rem 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--mkask-border);
+  border-radius: var(--mkask-radius);
+  background: var(--mkask-assistant);
+  color: var(--mkask-fg);
+  font: 0.85rem/1.45 var(--mkask-font);
+  text-align: left;
+}
+.mkask-sb__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.mkask-sb__title {
+  font-weight: 600;
+  color: var(--mkask-muted);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+.mkask-sb__ask {
+  border: 1px solid var(--mkask-accent);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  background: transparent;
+  color: var(--mkask-accent);
+  font: 600 0.78rem var(--mkask-font);
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mkask-sb__ask:hover { background: var(--mkask-accent); color: #fff; }
+.mkask-sb__status { margin: 0.4rem 0 0; color: var(--mkask-muted); font-size: 0.8em; }
+.mkask-sb__list { margin: 0.45rem 0 0; padding-left: 1.1rem; }
+.mkask-sb__list:empty { display: none; }
+.mkask-sb__list li { margin-bottom: 0.45rem; }
+.mkask-sb__link { color: var(--mkask-accent); text-decoration: none; display: block; }
+.mkask-sb__link:hover strong { text-decoration: underline; }
+.mkask-sb__crumbs { display: block; color: var(--mkask-muted); font-size: 0.78em; }
+.mkask-sb__snippet {
+  margin: 0.1rem 0 0;
+  color: var(--mkask-muted);
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
