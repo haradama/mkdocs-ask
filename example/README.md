@@ -6,6 +6,8 @@ around 200 chunks, deep heading hierarchies, reference tables full of error code
 configuration keys, metric names and environment variables, plus prose that answers questions
 without using the reader's words.
 
+It is published, built exactly as it is here, at **<https://haradama.github.io/mkdocs-ask/>**.
+
 ## Running it
 
 ```bash
@@ -94,6 +96,8 @@ run, because a golden set that always passes measures nothing.
 ```text
 example/
 |- mkdocs.yml            heavily commented plugin configuration
+|- mkdocs.gh-pages.yml   deploy overlay: inherits mkdocs.yml, changes only site_url
+|- overrides/main.html   the "this is a demo" banner, used by that overlay alone
 |- docs/                 23 pages: guides, operations, reference, support
 |  +- api/generated/     excluded from the index, to show `exclude` working
 +- scripts/
@@ -101,3 +105,15 @@ example/
    |- eval.py            embeds the queries, then runs eval.mjs
    +- eval.mjs           scores them with the runtime's own retrieval code
 ```
+
+## Publishing
+
+[`.github/workflows/pages.yml`](../.github/workflows/pages.yml) builds this directory on every
+push to `main` that touches the example or the plugin, and deploys `site/` to GitHub Pages. It
+builds with `mkdocs.gh-pages.yml`, an `INHERIT` overlay that leaves the plugin configuration
+alone and sets only what a public deployment needs: the real `site_url`, so canonical links and
+`sitemap.xml` are not pointing at `example.com`, a link back to the repository, and the banner
+that says Kagura is fictional. `mkdocs serve` still reads `mkdocs.yml`, unchanged.
+
+The published site loads the query encoder from a CDN, as a default install does. Turning on
+`runtime.vendor` would make it self-contained, at about 160 MB in `site/`.

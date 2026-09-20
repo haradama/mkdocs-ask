@@ -1,0 +1,93 @@
+name: Pages
+
+# Publishes the example site to https://haradama.github.io/mkdocs-ask/, so the plugin can be
+# tried in a browser without installing anything. The build is the real one: the same plugin,
+# the same 23 pages, embeddings computed at build time.
+#
+# One-time setup: Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "example/**"
+      - "src/mkdocs_ask/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancelled halfway: a cancelled deploy can leave the
+# published site on a half-uploaded build.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  UV_LOCKED: "1"
+  FORCE_COLOR: "1"
+
+jobs:
+  build:
+    name: Build the example site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      # Shares its key with the example job in ci.yml, so whichever runs first pays the
+      # ~130 MB model download and the other reuses it.
+      - name: Cache the embedding model
+        uses: actions/cache@v4
+        with:
+          path: example/.cache/mkdocs-ask
+          key: mkdocs-ask-model-multilingual-e5-small-v1
+
+      - name: Install with the recommended embedding backend
+        run: uv sync --extra fastembed
+
+      # mkdocs.gh-pages.yml inherits mkdocs.yml and changes only site_url, the repository
+      # link and the demo banner.
+      - name: Build
+        working-directory: example
+        run: uv run mkdocs build --strict -f mkdocs.gh-pages.yml
+
+      - name: The published site must carry a usable index
+        working-directory: example
+        run: |
+          uv run python - <<'PY'
+          import json, pathlib
+          out = pathlib.Path("site/assets/ask")
+          manifest = json.loads((out / "manifest.json").read_text())
+          assert manifest["model"], "no embeddings: the site would fall back to keyword-only"
+          vectors = manifest["vectors"]
+          size = (out / vectors["file"]).stat().st_size
+          assert size == vectors["count"] * vectors["dim"], (size, vectors)
+          print(f"{manifest['chunks']['count']} chunks, {vectors['dim']}-dim {vectors['dtype']} vectors")
+          PY
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: example/site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,6 +1,7 @@
 # mkdocs-ask
 
 [![CI](https://github.com/haradama/mkdocs-ask/actions/workflows/ci.yml/badge.svg)](https://github.com/haradama/mkdocs-ask/actions/workflows/ci.yml)
+[![Demo](https://img.shields.io/badge/demo-live-6750a4)](https://haradama.github.io/mkdocs-ask/)
 
 Conversational, **fully client-side** search for [MkDocs](https://www.mkdocs.org/).
 
@@ -16,8 +17,12 @@ writes an answer grounded in the retrieved sections.
 No API server, no vector database, no inference endpoint. The built `site/` directory is the
 whole deployment.
 
-See [DESIGN.md](DESIGN.md) for the architecture, and [example/](example/) for a demo site with a
-retrieval evaluation harness.
+**Try it: <https://haradama.github.io/mkdocs-ask/>** — the [example/](example/) site, built and
+published by [pages.yml](.github/workflows/pages.yml). Type in the header search box and ask
+something the docs never word that way, such as *we are running out of disk space*.
+
+See [DESIGN.md](DESIGN.md) for the architecture, and [example/](example/) for that site's
+configuration and its retrieval evaluation harness.
 
 ## Quick start
 

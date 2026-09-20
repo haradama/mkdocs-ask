@@ -1,0 +1,26 @@
+# Configuration overlay for the published demo at https://haradama.github.io/mkdocs-ask/.
+#
+# Everything about the plugin lives in mkdocs.yml and is shared with this file; only what a
+# public deployment needs is changed here: the real site URL, a link back to the repository,
+# and a banner saying that Kagura is fictional and this site exists to be searched.
+#
+#   uv run mkdocs build -f mkdocs.gh-pages.yml
+#
+# Local development is unaffected: `uv run mkdocs serve` still reads mkdocs.yml alone.
+
+INHERIT: ./mkdocs.yml
+
+# Material writes this into the canonical link and sitemap.xml, so it has to be the address
+# the site is actually served from.
+site_url: https://haradama.github.io/mkdocs-ask/
+
+repo_url: https://github.com/haradama/mkdocs-ask
+repo_name: haradama/mkdocs-ask
+
+theme:
+  custom_dir: overrides
+
+# The demo loads the query encoder and, for "Answer with AI", the answer model from public
+# CDNs. `runtime.vendor: true` would make the site self-contained instead, at about 160 MB in
+# site/; left off here so the published build stays small and the CDN path is what visitors
+# exercise.
